@@ -1,0 +1,38 @@
+#!/bin/sh
+
+#run mcep only once
+./bin/do_clustergen parallel mcep_sptk etc/text.done.data.it8
+
+for i in 0 1 2 3 4 5
+
+do
+   TTD=etc/text.done.data.it8
+
+   ./bin/traintest $TTD
+
+   ./bin/do_build build_prompts $TTD
+   ./bin/do_build label $TTD
+   ./bin/do_clustergen generate_statenames
+   ./bin/do_clustergen parallel build_utts $TTD
+   ./bin/do_clustergen generate_filters $TTD
+
+
+    ./bin/do_clustergen parallel f0_v_sptk $TTD
+#    ./bin/do_clustergen parallel mcep_sptk $TTD
+    ./bin/do_clustergen parallel str_sptk $TTD
+
+
+   ./bin/do_clustergen parallel combine_coeffs_v $TTD
+
+   ./bin/do_clustergen parallel cluster $TTD.train
+   ./bin/do_clustergen dur $TTD.train
+
+   mv dur.dur.S25.out dur.dur.S25.out-${i}
+   rm -rf ehmm/binfeat ehmm/feat
+   mv ehmm ehmm-${i}
+   ./bin/do_clustergen cg_test resynth cgp_it${i} $TTD.test >> mcd_ngram.out
+   ./bin/do_clustergen cg_test tts tts_it${i} $TTD.test
+
+   python get_ngrams.py
+done
+
